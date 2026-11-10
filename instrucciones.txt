@@ -1,0 +1,58 @@
+-----------------------------------------------------------------------
+NOTA SOBRE WEBKITGTK Y RUTAS ABSOLUTAS
+-----------------------------------------------------------------------
+
+El script resuelve dependencias de bibliotecas (.so) usando ldd y
+LD_LIBRARY_PATH, pero algunas aplicaciones buscan ejecutables o
+recursos auxiliares mediante rutas absolutas compiladas en el binario.
+
+Ejemplo típico con WebKitGTK:
+
+    /usr/lib/x86_64-linux-gnu/webkit2gtk-4.0/
+
+Si aparecen errores similares a:
+
+    WebKitNetworkProcess: No existe el fichero o el directorio
+
+o
+
+    libwebkit2gtkinjectedbundle.so: No existe el fichero o el directorio
+
+aunque los ficheros existan dentro de <programa>-libs, será necesario
+crear enlaces simbólicos manualmente.
+
+Ejemplo para un directorio llamado ivanti-libs:
+
+    sudo mkdir -p /usr/lib/x86_64-linux-gnu
+
+    sudo ln -sfn \
+    "$HOME/ivanti-libs/usr/lib/x86_64-linux-gnu/webkit2gtk-4.0" \
+    /usr/lib/x86_64-linux-gnu/webkit2gtk-4.0
+
+Comprobar:
+
+    ls -l /usr/lib/x86_64-linux-gnu/webkit2gtk-4.0
+
+Eliminar posteriormente:
+
+    sudo rm -f /usr/lib/x86_64-linux-gnu/webkit2gtk-4.0
+
+Este comportamiento no puede detectarse mediante ldd porque no se
+trata de bibliotecas cargadas por el enlazador dinámico, sino de
+ejecutables y recursos auxiliares buscados explícitamente por la
+aplicación.
+
+También es probable que algunas bibliotecas transitorias no se instalen
+porque la app original no las requiere (Aunque una de las bibliotecas que
+pide sí lo necesita). Esto puede deberse a que ldd busca las dependencias
+mirando las que existen en el sistema operativo actual, concluyendo que
+sí tenemos una dependencia de una versión anterior y esquivando la descarga
+del script.
+
+Esto se debe analizar también para instalar las dependencias restantes. Debemos desinstalar las dependencias que no nos sirvan de versiones anteriores con...
+
+	sudo apt autoremove
+
+Porque si tenemos esa dependencia instalada de forma normal en /usr/lib/ pero no su librería padre, no sabrá buscar la app partiendo de la nueva ruta usada para almacenar las bibliotecas locales, haciendo que falle.
+
+Si el autoremove no funciona, revisar si esa biblioteca es necesaria, o ponerla a mano en la carpeta de bibliotecas creada
