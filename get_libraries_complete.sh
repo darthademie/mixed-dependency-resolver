@@ -17,9 +17,9 @@ Generará:
     ./ivanti-libs
     ./ivanti-junk
 
-y descargará las dependencias necesarias desde
-un contenedor Debian 12 para resolver automáticamente las
-dependencias faltantes detectadas mediante ldd.
+Descargará las dependencias necesarias desde un contenedor Debian 12 
+para resolver automáticamente las dependencias faltantes detectadas 
+mediante ldd y creará un lanzador global en /usr/local/bin.
 
 Opciones:
 
@@ -41,7 +41,8 @@ if [ $# -ne 2 ]; then
 fi
 
 NAME="$1"
-TARGET="$2"
+# Convertimos el target a ruta absoluta para que el lanzador global nunca falle
+TARGET=$(realpath "$2")
 
 if [ ! -f "$TARGET" ]; then
     echo "[!] El ejecutable objetivo no existe: $TARGET"
@@ -272,9 +273,25 @@ echo
 echo "[+] Eliminando ${NAME}-junk..."
 rm -rf "$JUNKDIR"
 
+WRAPPER_PATH="/usr/local/bin/$NAME"
+
 echo
-echo "[+] Uso:"
+echo "[+] Generando script lanzador en $WRAPPER_PATH..."
+
+# Creamos el script en /usr/local/bin (pedirá contraseña de sudo si no está cacheada)
+cat <<EOF | sudo tee "$WRAPPER_PATH" > /dev/null
+#!/bin/bash
+
+export LD_LIBRARY_PATH="$LIBDIR/usr/lib/x86_64-linux-gnu"
+
+exec $TARGET "\$@"
+EOF
+
+sudo chmod +x "$WRAPPER_PATH"
+
 echo
-echo "export LD_LIBRARY_PATH=$LIBDIR/usr/lib/x86_64-linux-gnu"
-echo "$TARGET"
+echo "[+] ¡Completado!"
+echo "[+] Uso global disponible:"
+echo
+echo "    $NAME [argumentos...]"
 echo
